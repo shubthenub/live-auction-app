@@ -1,0 +1,62 @@
+auction-mvp/
+├── backend/
+│   ├── src/
+│   │   ├── config/
+│   │   │   ├── env.js
+│   │   │   ├── mongo.js
+│   │   │   └── redis.js
+│   │   │
+│   │   ├── auth/
+│   │   │   ├── auth.routes.js
+│   │   │   ├── auth.controller.js
+│   │   │   ├── auth.service.js
+│   │   │   └── auth.middleware.js
+│   │   │
+│   │   ├── users/
+│   │   │   └── user.model.js
+│   │   │
+│   │   ├── auctions/
+│   │   │   ├── auction.model.js
+│   │   │   ├── auction.routes.js
+│   │   │   ├── auction.controller.js
+│   │   │   └── auction.service.js
+│   │   │
+│   │   ├── bidding/
+│   │   │   ├── bidding.socket.js     # websocket handlers
+│   │   │   ├── bidding.service.js    # bid logic
+│   │   │   └── bidding.timer.js      # 10s timer logic
+│   │   │
+│   │   ├── wallet/
+│   │   │   ├── wallet.model.js
+│   │   │   └── wallet.service.js
+│   │   │
+│   │   ├── common/
+│   │   │   ├── authorize.js
+│   │   │   └── error.js
+│   │   │
+│   │   ├── app.js
+│   │   └── server.js
+│   │
+│   └── package.json
+│
+├── frontend/
+│   ├── src/
+│   │   ├── pages/
+│   │   │   ├── login.jsx
+│   │   │   ├── auctions.jsx
+│   │   │   └── auction-room.jsx
+│   │   │
+│   │   ├── components/
+│   │   │   ├── AuctionCard.jsx
+│   │   │   ├── BidBox.jsx
+│   │   │   └── Timer.jsx
+│   │   │
+│   │   ├── services/
+│   │   │   ├── api.js
+│   │   │   └── socket.js
+│   │   │
+│   │   └── main.jsx
+│   │
+│   └── package.json
+│
+└── README.md

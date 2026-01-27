@@ -1,6 +1,7 @@
 import { Auction } from './auction.model.js';
 import { getIO } from '../ws/socket.js';
 import { Types } from 'mongoose';
+import { initLiveAuction } from '../bidding/liveAuction.service.js';
 
 export async function startAuction(auctionId: Types.ObjectId) {
   const auction = await Auction.findById(auctionId);
@@ -9,9 +10,16 @@ export async function startAuction(auctionId: Types.ObjectId) {
     throw new Error('Auction not found');
   }
 
+  if (auction.status === 'ENDED'){
+    throw new Error('Auction has Ended');
+  }
+
   if (auction.status !== 'SCHEDULED') {
     throw new Error('Auction not scheduled');
   }
+
+  await initLiveAuction(auction.id, auction.basePrice, auction.endTime);
+  
 
   auction.status = 'LIVE';
   await auction.save();

@@ -6,6 +6,8 @@ import { Auction } from "../auctions/auction.model.js";
 import { getLiveAuctionState, placeBid } from "../bidding/liveAuction.service.js";
 import { scheduleBidBroadcast } from "./broadcaster.js";
 import { User } from "../users/user.model.js";
+import { Wallet } from "../wallet/wallet.model.js";
+import { redis } from "../config/redis.js";
 
 let io: Server;
 
@@ -59,26 +61,53 @@ export function setupSocket(server: http.Server) {
       
 
       if (!auction || auction.status !== "LIVE") {
-        socket.emit("error", "Auction not live");
+        socket.emit("auctionError", "Auction not live");
         return;
       }
 
       if (user.role !== "USER") {
-        socket.emit("error", "Only users can bid");
+        socket.emit("userError", "Only users can bid");
         return;
       }
 
       const auctionIdStr = auctionId.toString();
 
-      socket.join(`auction:${auctionIdStr}`);
+
       const state = await getLiveAuctionState(auctionIdStr);
 
       if (!state) {
-        socket.emit("error", "Auction not live due to no state in redis");
+        socket.emit("redisError", "Auction not live due to no state in redis");
         return;
       }
 
       socket.join(`auction:${auctionIdStr}`);
+
+      // Check user's wallet balance
+      const userDoc = await User.findById(user.id).select('walletId').lean();
+      if (!userDoc?.walletId) {
+        socket.emit("walletError", "User wallet not found");
+        return;
+      }
+
+      const wallet = await Wallet.findById(userDoc.walletId).lean();
+      if (!wallet || typeof wallet.balance !== 'number') {
+        socket.emit("walletError", "Invalid wallet data");
+        return;
+      }
+
+      if (wallet.balance < state.currentPrice) {
+        socket.emit("walletError", "Insufficient balance");
+        return;
+      }
+
+      await redis
+        .multi()
+        .hset(`wallet:${user.id}`, {
+          balance: wallet.balance.toString(),
+          locked: state.currentPrice.toString()
+        })
+        .expire(`wallet:${user.id}`, 3600)
+        .exec();
 
       socket.emit("auctionState", {
         ...state,
@@ -113,11 +142,12 @@ export function setupSocket(server: http.Server) {
     socket.on("leaveAuction", ({ auctionId }) => {
       const auctionIdStr = auctionId.toString();
       socket.leave(`auction:${auctionIdStr}`);
-      console.log(`✅ User ${user.id} left auction ${auctionIdStr}`);
+      console.log(`User ${user.id} left auction ${auctionIdStr}`);
     });
 
     socket.on("disconnect", () => {
       console.log("Socket disconnected:", socket.id);
+      redis.del(`wallet:${user.id}`);
     });
   });
 
@@ -130,3 +160,10 @@ export function getIO(): Server {
   }
   return io;
 }
+
+
+//notes - 
+// User joins → wallet locked 
+// User leaves room → wallet stays locked 
+// User disconnects → wallet stays locked 
+// Auction ends → endAuction() releases/transfers funds 

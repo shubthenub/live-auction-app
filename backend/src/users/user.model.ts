@@ -12,6 +12,12 @@ const UserSchema = new Schema(
       enum: ['USER', 'AUCTIONEER'],
       required: true,
     },
+    walletId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Wallet',
+      unique: true,
+    },
+    
   },
   { timestamps: true }
 );

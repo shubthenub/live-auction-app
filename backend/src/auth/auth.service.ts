@@ -4,6 +4,8 @@ import { User, Role } from '../users/user.model.js';
 import { env } from '../config/env.js';
 import crypto from 'crypto';
 import { RefreshToken } from './refreshToken.model.js';
+import { Wallet } from '../wallet/wallet.model.js';
+import { startSession } from 'mongoose';
 
 export async function register(
   username: string,
@@ -14,15 +16,56 @@ export async function register(
   const exists = await User.findOne({ username, email });
   if (exists) throw new Error('User already exists');
 
-  const hash = await bcrypt.hash(password, 12);
+  const hash = await bcrypt.hash(password, 12);  
 
-  return User.create({
-    username,
-    email,
-    passwordHash: hash,
-    role,
-  });
+  const session = await startSession();
+  session.startTransaction();
+
+  try {
+    const user = await User.create(
+      [{
+        username: username.trim(),
+        email: email.toLowerCase(),
+        passwordHash: hash,
+        role
+      }],
+      { session }
+    );
+
+    const wallet = await Wallet.create(
+      [{
+        userId: user[0]._id,
+        balance: 100000,
+        locked: 0
+      }],
+      { session }
+    );
+
+    // LINK WALLET TO USER 
+    await User.findByIdAndUpdate(
+      user[0]._id,
+      { walletId: wallet[0]._id },
+      { session, new: true }
+    );
+
+    await session.commitTransaction();
+
+
+    console.log(`User registered: ${user[0]._id}`);
+
+    return {
+      userId: user[0]._id,
+      email: user[0].email,
+      role: user[0].role,
+      };
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
 }
+
 
 export async function login(email: string, password: string) {
   const user = await User.findOne({ email });

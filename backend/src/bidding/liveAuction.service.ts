@@ -3,7 +3,7 @@ import { endAuction } from '../auctions/auction.scheduler.js';
 import { redis } from '../config/redis.js';
 import fs from 'fs';
 
-const ROUND_DURATION_MS = 30000;
+const ROUND_DURATION_MS = 60000;
 let subscriber: ReturnType<typeof redis.duplicate> | null = null;
 
 async function initSubscriber() {
@@ -118,14 +118,15 @@ export async function placeBid(
 ) {
   const res = await redis.eval(
     lua,
-    2, //number of keys
+    3, //number of keys
     `auction:data:${auctionId}`,  // KEYS[1]
     `auction:timer:${auctionId}`, // KEYS[2]
+    `wallet:${bidderId}`,    // KEYS[3]
     amount,
     bidderId,
     Date.now(),
     minIncrement,
-    30000
+    60000
   ) as PlaceBidResult;
 
   return {

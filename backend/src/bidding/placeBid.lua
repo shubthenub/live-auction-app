@@ -16,11 +16,11 @@ end
 
 -- 2. Validate bid amount first
 if bid <= currentPrice then
-  return {0, "Bid must be higher than current price", currentPrice}
+  return {0, "Bid must be higher than current price", 0}
 end
 
 if bid < (currentPrice + minIncrement) then
-  return {0, "Bid increment too small", currentPrice}
+  return {0, "Bid increment too small", 0}
 end
 
 -- 3. Validate wallet and available balance
@@ -40,7 +40,7 @@ local locked = tonumber(walletData.locked) or 0
 -- Check if available balance >= new bid amount
 local available = balance - locked
 if available < bid then
-  return {0, "Insufficient available balance", available}
+  return {0, "Insufficient available balance", 0}
 end
 
 -- 4. Release previous bidder's locked amount (if not same user)

@@ -7,12 +7,18 @@ type AuctionSnapshot = {
 
 const pending = new Map<string, AuctionSnapshot>();
 const scheduled = new Set<string>();
+const BROADCAST_DELAY = 250; // ms
 
 export function scheduleBidBroadcast(
   io: any,
   auctionId: string,
   snapshot: AuctionSnapshot
 ) {
+  if (!auctionId || !io) {
+    console.error('[WS] Invalid parameters for broadcast', { auctionId });
+    return;
+  }
+
   pending.set(auctionId, snapshot);
 
   if (scheduled.has(auctionId)) {
@@ -21,23 +27,20 @@ export function scheduleBidBroadcast(
   }
 
   scheduled.add(auctionId);
-
   console.log('[WS] Scheduling broadcast', auctionId);
 
   setTimeout(() => {
-    const latest = pending.get(auctionId);
-    if (latest) {
-      console.log('[WS] Emitting bidUpdate', {
-        auctionId,
-        price: latest.currentPrice,
-        bidder: latest.highestBidderId,
-      });
-
-      io.to(`auction:${auctionId}`).emit('bidUpdate', latest);
+    try {
+      const latest = pending.get(auctionId);
+      if (latest) {
+        io.to(`auction:${auctionId}`).emit('bidUpdate', latest);
+        console.log('[WS] Emitted bidUpdate', { auctionId, price: latest.currentPrice });
+      }
+    } catch (error) {
+      console.error('[WS] Broadcast failed', { auctionId, error });
+    } finally {
+      pending.delete(auctionId);
+      scheduled.delete(auctionId);
     }
-
-    pending.delete(auctionId);
-    scheduled.delete(auctionId);
-  }, 250);
+  }, BROADCAST_DELAY);
 }
-

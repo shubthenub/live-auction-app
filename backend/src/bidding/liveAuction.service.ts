@@ -2,6 +2,7 @@ import { Types } from 'mongoose';
 import { endAuction } from '../auctions/auction.scheduler.js';
 import { redis } from '../config/redis.js';
 import fs from 'fs';
+import { rabbitmq } from '../config/rabbitmq.js';
 
 const ROUND_DURATION_MS = 60000;
 let subscriber: ReturnType<typeof redis.duplicate> | null = null;
@@ -116,6 +117,12 @@ export async function placeBid(
   bidderId: string,
   minIncrement: number
 ) {
+  const auctionState = await getLiveAuctionState(auctionId);
+  
+  if (!auctionState || !auctionState.isLive) {
+    throw new Error("Auction is not live");
+  }
+
   const res = await redis.eval(
     lua,
     3, //number of keys
@@ -128,6 +135,20 @@ export async function placeBid(
     minIncrement,
     60000
   ) as PlaceBidResult;
+
+  // Only publish if roundEndsAt = 0 signals change)
+  if (res[2] != 0) {
+    try {
+      rabbitmq.publishBid({
+        auctionId,
+        bidderId,
+        amount,
+        timestamp: new Date(),
+      });
+    } catch (error) {
+      console.error("Failed to publish bid to queue:", error);
+    }
+  }
 
   return {
     currentPrice: res[0],

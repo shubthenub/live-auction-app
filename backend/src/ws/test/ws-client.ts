@@ -2,7 +2,7 @@ import { io } from 'socket.io-client';
 
 const socket = io('http://localhost:3000', {
   auth: {
-    token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2OTdkMmNiZjkzYzM3M2Y5ZjVmY2Q2MDgiLCJyb2xlIjoiVVNFUiIsImlhdCI6MTc2OTg4NTk1MCwiZXhwIjoxNzY5ODk0OTUwLCJhdWQiOiJodHRwOi8vbG9jYWxob3N0OjMwMDAiLCJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjMwMDAifQ.G4Z2VmjvluxjMQbx7degw1UEPgfT047c2_NXRroppC8',
+    token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2OTdkMmNiZjkzYzM3M2Y5ZjVmY2Q2MDgiLCJyb2xlIjoiVVNFUiIsImlhdCI6MTc2OTk0MzczMywiZXhwIjoxNzY5OTUyNzMzLCJhdWQiOiJodHRwOi8vbG9jYWxob3N0OjMwMDAiLCJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjMwMDAifQ.ThfkH6HlaSZe_lWbL4wh7QtnhfNmCnQ7JbAxi3D6Xy4',
   },
 });
 
@@ -11,11 +11,11 @@ socket.on('connect', () => {
 
   // simulate user on auction page
   socket.emit('joinAuction', {
-    auctionId: '697e597bf172fd68e7066491',
+    auctionId: '697f37cf77e8cec31297e5b8',
   });
 
   setTimeout(() => {
-    socket.emit("placeBid", { auctionId: "697e597bf172fd68e7066491", amount: 92000 });
+    socket.emit("placeBid", { auctionId: "697f37cf77e8cec31297e5b8", amount: 92000 });
   }, 2000);
 });
 

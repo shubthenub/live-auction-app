@@ -1,6 +1,7 @@
 import { Auction } from './auction.model.js';
 import { cloudinaryImageUpload } from '../common/cloudinaryImageUpload.js';
 import { Types } from 'mongoose';
+import { rabbitmq } from '../config/rabbitmq.js';
 
 interface CreateAuctionInput {
   title: string;
@@ -79,8 +80,125 @@ export async function createAuction(input: CreateAuctionInput) {
     status: 'SCHEDULED',
     createdBy: createdByObjectId,
   });
-
+  try {
+    await rabbitmq.scheduleAuctionStart(auction._id.toString(), startTime);
+    console.log("Checking date and time after publishing schedule auction message: ", startTime)
+    console.log(`✅ Auction ${auction._id} scheduled to start at ${startTime.toISOString()}`);
+  } catch (error) {
+    console.error('❌ Failed to schedule auction:', error);
+  }
   return auction;
+}
+
+
+export async function getAuctions(
+  page: number = 1,
+  limit: number = 10,
+  status?: 'SCHEDULED' | 'LIVE' | 'ENDED'
+) {
+  const skip = (page - 1) * limit;
+
+  const filter: any = {};
+  if (status) {
+    filter.status = status;
+  }
+
+  const [auctions, total] = await Promise.all([
+    Auction.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    Auction.countDocuments(filter),
+  ]);
+
+  return {
+    auctions,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+      hasMore: page * limit < total,
+    },
+  };
+}
+
+export async function getSellerAuctions(
+  sellerId: Types.ObjectId | string,
+  page: number = 1,
+  limit: number = 10,
+  status?: 'SCHEDULED' | 'LIVE' | 'ENDED'
+) {
+  const skip = (page - 1) * limit;
+
+  const sellerObjectId =
+    typeof sellerId === 'string'
+      ? new Types.ObjectId(sellerId)
+      : sellerId;
+
+  const filter: any = { createdBy: sellerObjectId };
+  if (status) {
+    filter.status = status;
+  }
+
+  const [auctions, total] = await Promise.all([
+    Auction.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    Auction.countDocuments(filter),
+  ]);
+
+  return {
+    auctions,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+      hasMore: page * limit < total,
+    },
+  };
+}
+
+export async function getWonAuctions(
+  userId: Types.ObjectId | string,
+  page: number = 1,
+  limit: number = 10,
+) {
+  const skip = (page - 1) * limit;
+
+  const userObjectId =
+    typeof userId === 'string'
+      ? new Types.ObjectId(userId)
+      : userId;
+
+  const filter: any = { 
+    winnerId: userObjectId,
+    status: 'ENDED' // Default to ENDED for won auctions
+  };
+
+  const [auctions, total] = await Promise.all([
+    Auction.find(filter)
+      .sort({ endTime: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    Auction.countDocuments(filter),
+  ]);
+
+  return {
+    auctions,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+      hasMore: page * limit < total,
+    },
+  };
 }
 
 export async function getAuctionById(auctionId: Types.ObjectId | string) {

@@ -45,6 +45,92 @@ export async function createAuction(req: Request, res: Response) {
   res.status(201).json(auction);
 }
 
+export async function getAuctions(req: Request, res: Response) {
+  try {
+    const page = Number(req.query.page || 1);
+    const limit = Number(req.query.limit || 10);
+    const status = req.query.status as 'SCHEDULED' | 'LIVE' | 'ENDED' | undefined;
+
+    const result = await auctionService.getAuctions(page, limit, status);
+
+    res.json({
+      success: true,
+      data: result.auctions,
+      pagination: result.pagination,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to fetch auctions',
+    });
+  }
+}
+
+export async function getMyAuctions(req: Request, res: Response) {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Unauthenticated' 
+      });
+    }
+
+    const page = Number(req.query.page || 1);
+    const limit = Number(req.query.limit || 10);
+    const status = req.query.status as 'SCHEDULED' | 'LIVE' | 'ENDED' | undefined;
+
+    const result = await auctionService.getSellerAuctions(
+      req.user.id,
+      page,
+      limit,
+      status
+    );
+
+    res.json({
+      success: true,
+      data: result.auctions,
+      pagination: result.pagination,
+    });
+  } catch (error: any) {
+    console.error('Get seller auctions error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to fetch your auctions',
+    });
+  }
+}
+
+export async function getMyWonAuctions(req: Request, res: Response) {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Unauthenticated' 
+      });
+    }
+
+    const page = Number(req.query.page || 1);
+    const limit = Number(req.query.limit || 10);
+
+    const result = await auctionService.getWonAuctions(
+      req.user.id,
+      page,
+      limit
+    );
+
+    res.json({
+      success: true,
+      data: result.auctions,
+      pagination: result.pagination,
+    });
+  } catch (error: any) {
+    console.error('Get won auctions error:', error);
+    res.status(500).json({success: false,
+      message: error.message || 'Failed to fetch won auctions',
+    });
+  }
+}
+
 export async function getAuctionById(req: Request, res: Response) {
   const { id } = req.params;
 

@@ -1,9 +1,8 @@
 import { Router } from 'express';
-import { createAuction } from './auction.controller.js';
+import { createAuction, getMyAuctions, getAuctions, getAuctionById, getMyWonAuctions } from './auction.controller.js';
 import { authenticate } from '../auth/auth.middleware.js';
 import { authorize } from '../auth/auth.middleware.js';
 import { uploadImage } from '../common/uploadImage.js';
-import { getAuctionById } from './auction.controller.js';
 import { endAuction, startAuction } from './auction.scheduler.js';
 import { Types } from 'mongoose';
 
@@ -18,7 +17,13 @@ router.post(
   createAuction
 );
 
-router.get('/:id', authenticate, authorize(['USER', 'AUCTIONEER']), getAuctionById)
+
+router.get('/', authenticate, authorize(['USER', 'AUCTIONEER']), getAuctions)
+
+router.get('/my-auctions', authenticate, authorize(['AUCTIONEER']), getMyAuctions)
+
+router.get('/my-wins', authenticate, authorize(['USER']), getMyWonAuctions)
+
 router.post(
     '/:id/start',
     authenticate,
@@ -50,5 +55,8 @@ router.post(
     res.json({ message: 'Auction ended' });
   }
 );
+
+router.get('/:id', authenticate, authorize(['USER', 'AUCTIONEER']), getAuctionById)
+// Rule: Always put specific paths before dynamic params
 
 export default router;

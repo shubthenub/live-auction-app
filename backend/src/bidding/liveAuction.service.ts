@@ -123,6 +123,13 @@ export async function placeBid(
     throw new Error("Auction is not live");
   }
 
+  if(bidderId === auctionState.highestBidderId) {
+    return{
+      success: false,
+      message: "You are already the highest bidder",
+    }
+  }
+
   const res = await redis.eval(
     lua,
     3, //number of keys

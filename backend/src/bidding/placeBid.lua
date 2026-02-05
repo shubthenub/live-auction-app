@@ -38,8 +38,8 @@ local balance = tonumber(walletData.balance) or 0
 local locked = tonumber(walletData.locked) or 0
 
 -- Check if available balance >= new bid amount
-local available = balance - locked
-if available < bid then
+-- local available = balance - locked  (WRONG) , locked only matters for tracking how much this user would pay if he wins.
+if balance < bid then
   return {0, "Insufficient available balance", 0}
 end
 

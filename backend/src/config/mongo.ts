@@ -3,5 +3,5 @@ import { env } from './env.js';
 
 export async function connectMongo() {
   await mongoose.connect(env.MONGO_URI);
-  console.log('MongoDB connected');
+  console.log('[MONGO.ts]MongoDB connected');
 }

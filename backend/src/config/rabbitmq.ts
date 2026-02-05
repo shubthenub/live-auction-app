@@ -15,7 +15,7 @@ class RabbitMQ {
     // Try to use existing queue without changing its args
     try {
       await this.channel.checkQueue(this.BID_QUEUE_NAME);
-      console.log("Queue exists, using it as-is");
+      console.log("[RABBITMQ] Bid audit queue exists, using it as-is");
     } catch {
       // Queue doesn't exist: create it with DLQ
       await this.channel.assertQueue(this.BID_DLQ_NAME, { durable: true });
@@ -49,7 +49,7 @@ class RabbitMQ {
     });
     
     await this.channel.prefetch(100);
-    console.log("RabbitMQ( Auction Scheduler) connected with DLQ");
+    console.log("[RABBITMQ] Auction Scheduler connected with DLQ");
   }
 
   // Fire-and-forget 
@@ -87,12 +87,17 @@ class RabbitMQ {
   // Schedule auction start using TTL
   async scheduleAuctionStart(auctionId: string, startTime: Date) {
     const channel = this.getChannel();
-    const delay = startTime.getTime() - Date.now();
-    console.log(`⏰ Scheduling auction ${auctionId}`);
-    console.log(`   StartTime: ${startTime.toISOString()}`);
+    const startMs = new Date(startTime).getTime(); // UTC epoch
+    const nowMs = Date.now();                      // UTC epoch
+    const delay = startMs - nowMs;
+
 
     if (delay <= 0) {
       throw new Error('Start time must be in the future');
+    }
+
+    if(delay > 198396) { //Time drift occured , fix it 
+      throw new Error('Delay seems drifted too much: ' + delay.toString());
     }
 
     // Send to delay queue with TTL (expiration)

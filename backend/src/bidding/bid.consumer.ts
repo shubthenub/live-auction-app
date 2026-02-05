@@ -22,16 +22,15 @@ async function flushBatch() {
   while (retries < MAX_RETRIES) {
     try {
       await Bid.insertMany(bidsToInsert, { ordered: false });
-      console.log(`[Bid Worker] Inserted ${bidsToInsert.length} bids`);
+      console.log(`[BID WORKER] Inserted ${bidsToInsert.length} bids`);
       isFlushingInProgress = false;
       return;
     } catch (error: any) {
       retries++;
-      console.error(`Batch insert failed (attempt ${retries}/${MAX_RETRIES}):`, error.message);
-
+      console.error(`[BID WORKER] Batch insert failed (attempt ${retries}/${MAX_RETRIES}):`, error.message);
       if (retries >= MAX_RETRIES) {
-        console.error("CRITICAL: Batch insert failed after max retries");
-        console.error("Failed bids:", JSON.stringify(bidsToInsert));
+        console.error("[BID WORKER] CRITICAL: Batch insert failed after max retries");
+        console.error("[BID WORKER] Failed bids:", JSON.stringify(bidsToInsert));
         // Send to dead-letter queue for manual review
         await sendToDeadLetterQueue(bidsToInsert);
         isFlushingInProgress = false;
@@ -50,13 +49,13 @@ async function sendToDeadLetterQueue(bids: any[]) {
       channel.sendToQueue("bid-audit-dlq", Buffer.from(JSON.stringify(bids)));
     }
   } catch (error) {
-    console.error("Failed to send to DLQ:", error);
+    console.error("[BID WORKER] Failed to send to DLQ:", error);
   }
 }
 
 export async function startBidConsumer() {
   const channel = rabbitmq.getChannel();
-  if (!channel) throw new Error("RabbitMQ not connected");
+  if (!channel) throw new Error("[BID WORKER] RabbitMQ not connected");
 
   channel.consume("bid-audit", async (msg: any) => {
     if (!msg) return;
@@ -87,17 +86,17 @@ export async function startBidConsumer() {
 
       channel.ack(msg);
     } catch (error) {
-      console.error("Consumer error:", error);
+      console.error("[BID WORKER] Consumer error:", error);
       channel.nack(msg, false, true);
     }
   });
 
-  console.log("Bid consumer started");
+  console.log("[BID WORKER] Bid consumer started");
 }
 
 async function gracefulShutdown() {
   isShuttingDown = true;
-  console.log("Flushing remaining bids...");
+  console.log("[BID WORKER] Flushing remaining bids...");
   if (batchTimer) clearTimeout(batchTimer);
   
   while (isFlushingInProgress || batchBuffer.length > 0) {
@@ -105,7 +104,7 @@ async function gracefulShutdown() {
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
   
-  console.log("Shutdown complete");
+  console.log("[BID WORKER] Shutdown complete");
   process.exit(0);
 }
 

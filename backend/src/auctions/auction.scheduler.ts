@@ -73,6 +73,17 @@ export async function endAuction(
     }
 
     const io = getIO();
+    // Unlock all non-winning bidders in this auction room
+    const sockets = io.sockets.adapter.rooms.get(`auction:${auctionId.toString()}`);
+    if (sockets) {
+      for (const socketId of sockets) {
+        const socket = io.sockets.sockets.get(socketId);
+        if (socket && socket.data.user?.id !== winnerId) {
+          // Unlock non-winning user's wallet
+          await redis.hset(`wallet:${socket.data.user.id}`, 'locked', '0');
+        }
+      }
+    }
     io.to(`auction:${auctionId.toString()}`).emit("auctionEnded", {
       auctionId: auction.id,
       finalPrice,

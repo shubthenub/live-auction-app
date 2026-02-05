@@ -1,7 +1,6 @@
 6.ranking algorithm for auctions
-7.automatic starting the auction at set time 
-8.revise socket setup , optimise if possible, try to max scalability
-9.rejoin logic in live auction 
+10.api versioning 
+11.mail notification
 
 
 

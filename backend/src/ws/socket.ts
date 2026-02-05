@@ -71,7 +71,12 @@ export function setupSocket(server: http.Server) {
       }
 
       const auctionIdStr = auctionId.toString();
-
+      // Single auction check: if user has any locked amount, reject
+      const locked = await redis.hget(`wallet:${user.id}`, 'locked');
+      if (locked && parseFloat(locked) > 0) {
+        socket.emit("walletError", "You are already in an active auction. Leave that auction first.");
+        return;
+      }
 
       const state = await getLiveAuctionState(auctionIdStr);
 
@@ -127,9 +132,9 @@ export function setupSocket(server: http.Server) {
         );
 
         scheduleBidBroadcast(io, auctionId, {  //to throttle bid updates broadcast 
-          currentPrice: state.currentPrice,
-          highestBidderId: state.highestBidderId,
-          roundEndsAt: state.roundEndsAt,
+          currentPrice: Number(state.currentPrice),
+          highestBidderId: String(state.highestBidderId),
+          roundEndsAt: Number(state.roundEndsAt),
           serverTime: Date.now(),
         });
 
@@ -139,15 +144,39 @@ export function setupSocket(server: http.Server) {
     });
 
 
-    socket.on("leaveAuction", ({ auctionId }) => {
+    socket.on("leaveAuction", async ({ auctionId }) => {
       const auctionIdStr = auctionId.toString();
+      try {
+        const state = await getLiveAuctionState(auctionIdStr);
+        
+        // Unlock wallet only if user is NOT the highest bidder
+        if (state && state.highestBidderId !== user.id) {
+          await redis.hset(`wallet:${user.id}`, 'locked', '0');
+        }
+      } catch (err) {
+        console.error("Error unlocking wallet on leave:", err);
+      }
       socket.leave(`auction:${auctionIdStr}`);
       console.log(`User ${user.id} left auction ${auctionIdStr}`);
     });
 
-    socket.on("disconnect", () => {
-      console.log("Socket disconnected:", socket.id);
-      redis.del(`wallet:${user.id}`);
+    socket.on("disconnect", async () => {
+      const auctionIdStr = socket.handshake.headers['auction-id'] || null; // pass auction ID on connect
+      
+      console.log("Socket disconnected:", socket.id, "User:", user.id);
+      
+      // If user disconnects while NOT winning, unlock wallet immediately
+      // This prevents funds from being locked indefinitely if client crashes
+      try {
+        if (auctionIdStr) {
+          const state = await getLiveAuctionState(auctionIdStr);
+          if (state && state.highestBidderId !== user.id) {
+            await redis.hset(`wallet:${user.id}`, 'locked', '0');
+          }
+        }
+      } catch (err) {
+        console.error("Error unlocking wallet on disconnect:", err);
+      }
     });
   });
 

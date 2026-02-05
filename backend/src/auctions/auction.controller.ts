@@ -14,13 +14,10 @@ export async function createAuction(req: Request, res: Response) {
     minIncrement,
     startTime,
     endTime,
-  } = req.body;
+  } = trimmedBody;
 
-  console.log(req.body)
-
-  
-
-  if(!req.user) {
+  console.log(trimmedBody)
+  if (!req.user) {
     return res.status(401).json({ message: 'Unauthenticated' });
   }
   
@@ -29,12 +26,12 @@ export async function createAuction(req: Request, res: Response) {
   const files = req.files as Express.Multer.File[];
 
   const auction = await auctionService.createAuction({
-    title,
-    description,
+    title: String(title),
+    description: String(description),
     basePrice: Number(basePrice),
     minIncrement: minIncrement ? Number(minIncrement) : undefined,
-    startTime: new Date(startTime),
-    endTime: new Date(endTime),
+    startTime: new Date(String(startTime)),
+    endTime: new Date(String(endTime)),
     createdBy: req.user.id, // set by auth middleware
     files,
   });

@@ -9,6 +9,6 @@ redis.on('error', (err) => {
 
 redis.on('connect', async () => {
   await redis.config('SET', 'notify-keyspace-events', 'Ex');
-  console.log('Keyspace notifications enabled');
-  console.log('Successfully connected to Redis');
+  console.log('[REDIS] Keyspace notifications enabled');
+  console.log('[REDIS] Successfully connected to Redis');
 });

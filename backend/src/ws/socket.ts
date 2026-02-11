@@ -30,12 +30,12 @@ export function setupSocket(server: http.Server) {
     try {
       const payload = jwt.verify(token, env.JWT_SECRET) as any;
 
-      if(process.env.NODE_ENV === "production" && payload.aud !== "http://localhost:3000") {//only do db check in production
-        const user = await User.findById(payload.sub).lean();
-        if (!user ) {
-          return next(new Error("Unauthorized"));
-        }
-      }
+      // if(process.env.NODE_ENV === "production" && payload.aud !== "http://localhost:3000") {//only do db check in production
+      //   const user = await User.findById(payload.sub).lean();
+      //   if (!user ) {
+      //     return next(new Error("Unauthorized"));
+      //   }
+      // }
       
       socket.data.user = {
         id: payload.sub,

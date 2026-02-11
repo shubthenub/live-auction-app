@@ -1,6 +1,13 @@
 import { Request, Response } from 'express';
-import * as auctionService from './auction.service.js';
+import * as auctionService from '../../../auctions/auction.service.js';
 import { Types } from 'mongoose';
+
+import {
+  CreateAuctionRequestDTO,
+  GetAuctionsQueryDTO,
+  PaginatedAuctionsResponseDTO,
+  SingleAuctionResponseDTO,
+} from './auction.dto.js';
 
 export async function createAuction(req: Request, res: Response) {
 
@@ -14,7 +21,7 @@ export async function createAuction(req: Request, res: Response) {
     minIncrement,
     startTime,
     endTime,
-  } = trimmedBody;
+  } = trimmedBody as CreateAuctionRequestDTO;
 
   console.log(trimmedBody)
   if (!req.user) {
@@ -44,9 +51,7 @@ export async function createAuction(req: Request, res: Response) {
 
 export async function getAuctions(req: Request, res: Response) {
   try {
-    const page = Number(req.query.page || 1);
-    const limit = Number(req.query.limit || 10);
-    const status = req.query.status as 'SCHEDULED' | 'LIVE' | 'ENDED' | undefined;
+    const {page, limit, status} = req.query as GetAuctionsQueryDTO;
 
     const result = await auctionService.getAuctions(page, limit, status);
 

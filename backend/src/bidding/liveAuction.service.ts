@@ -143,7 +143,11 @@ export async function placeBid(
     60000
   ) as PlaceBidResult;
 
-  // Only publish if roundEndsAt = 0 signals change)
+  if (res[0] === 0) {  
+    throw new Error(res[1] || "Bid rejected by server");
+  }
+
+  // Only publish if roundEndsAt = 0 signals change)  -- persistence check 
   if (res[2] != 0) {
     try {
       rabbitmq.publishBid({

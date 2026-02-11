@@ -1,13 +1,25 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
     "rootDir": "src",
     "outDir": "dist",
     "strict": true,
     "esModuleInterop": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+
+    "baseUrl": "./src",
+    "paths": {
+      "@/*": ["*"],
+      "@api/*": ["api/*"],
+      "@auth/*": ["auth/*"],
+      "@users/*": ["users/*"],
+      "@auctions/*": ["auctions/*"],
+      "@common/*": ["common/*"],
+      "@config/*": ["config/*"],
+      "@middleware/*": ["middleware/*"]
+    },
   },
   "include": ["src"]
 }

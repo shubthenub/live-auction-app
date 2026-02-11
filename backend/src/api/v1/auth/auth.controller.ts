@@ -1,30 +1,34 @@
 import { Request, Response } from 'express';
-import * as authService from './auth.service.js';
-import { RefreshToken } from './refreshToken.model.js';
-import { User } from '../users/user.model.js';
+import * as authService from '@auth/auth.service';
+import { RefreshToken } from '@auth/refreshToken.model';
+import { User } from '@users/user.model';
+import { env } from '@config/env';
+
 import jwt from 'jsonwebtoken';
-import { env } from '../config/env.js';
+
+import {
+  LoginRequestDTO,
+  LoginResponseDTO,
+  RegisterRequestDTO,
+} from './auth.dto';
+import { registerSchema } from './auth.schema';
 
 export async function register(req: Request, res: Response) {
   try {
-    const { username, email, password, role } = req.body;
+    const { username, email, password, role } = req.body as RegisterRequestDTO;
 
-    // Validation
-    if (!username || !email || !password) {
-      return res.status(400).json({ 
+   
+    const result = registerSchema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({
         success: false,
-        message: 'Username, email, and password are required' 
+        message: "Invalid request",
+        errors: result.error.flatten(),
       });
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({ 
-        success: false,
-        message: 'Password must be at least 6 characters long' 
-      });
-    }
-
-    await authService.register(username, email, password, role);
+    const dto = result.data;
+    await authService.register(dto.username, dto.email, dto.password, dto.role);
     res.status(201).json({ 
       success: true,
       message: 'Registration successful' 
@@ -58,7 +62,7 @@ export async function register(req: Request, res: Response) {
 
 export async function login(req: Request, res: Response) {
   try {
-    const { email, password } = req.body;
+    const { email, password } = req.body as LoginRequestDTO;
 
     if (!email || !password) {
       return res.status(400).json({ 
@@ -75,12 +79,14 @@ export async function login(req: Request, res: Response) {
       sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
-    
-    res.json({ 
+
+    const response: LoginResponseDTO = {
       success: true,
       accessToken,
-      message: 'Login successful' 
-    });
+      message: 'Login successful',
+    };
+    
+    res.json(response);;
   } catch (error: any) {
     console.error('Login error:', error);
 
@@ -186,5 +192,21 @@ export async function refresh(req: Request, res: Response) {
       success: false,
       message: 'Token refresh failed. Please login again.' 
     });
+  }
+}
+
+export async function getMe(req: Request, res: Response) {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+    // You can select which fields to return
+    const { id, role } = req.user;
+    res.json({
+      id: id 
+      // ...add other fields as needed
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 }

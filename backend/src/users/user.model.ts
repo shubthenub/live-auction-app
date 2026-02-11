@@ -1,6 +1,11 @@
- import { Schema, model } from 'mongoose';
+import { Schema, model } from 'mongoose';
+import { z } from 'zod';
 
-export type Role = 'USER' | 'AUCTIONEER';
+export const ROLES = ['USER', 'AUCTIONEER'] as const;
+export type Role = (typeof ROLES)[number];
+
+// Canonical validator (reuse everywhere)
+export const RoleSchema = z.enum(ROLES);
 
 const UserSchema = new Schema(
   {
@@ -9,7 +14,7 @@ const UserSchema = new Schema(
     passwordHash: { type: String, required: true },
     role: {
       type: String,
-      enum: ['USER', 'AUCTIONEER'],
+      enum: ROLES,
       required: true,
     },
     walletId: {

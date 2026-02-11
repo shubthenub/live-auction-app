@@ -6,6 +6,7 @@ interface BidResult {
   amount: number;
   timestamp: number;
   success: boolean;
+  accepted: boolean;
   error?: string;
   latency?: number;
 }
@@ -13,6 +14,8 @@ interface BidResult {
 interface TestMetrics {
   totalBids: number;
   successfulBids: number;
+  acceptedBids: number;
+  rejectedBids: number;
   failedBids: number;
   averageLatency: number;
   minLatency: number;
@@ -20,7 +23,8 @@ interface TestMetrics {
   concurrentUsers: number;
   testDuration: number;
   bidsPerSecond: number;
-  errorBreakdown: Record<string, number>;
+  rejectedBreakdown: Record<string, number>;
+  failedBreakdown: Record<string, number>;
 }
 
 class MassiveBiddingStressTest {
@@ -32,6 +36,12 @@ class MassiveBiddingStressTest {
   private startTime = 0;
   private endTime = 0;
   private currentPrice = 1000;
+  private validationErrors = new Set([
+    'Bid must be higher than current price',
+    'Bid increment too small',
+    'Insufficient available balance',
+    'You are already the highest bidder',
+  ]);
 
   constructor(auctionId: string, baseUrl: string = 'http://localhost:3000') {
     this.auctionId = auctionId;
@@ -94,6 +104,7 @@ class MassiveBiddingStressTest {
         amount,
         timestamp: Date.now(),
         success: false,
+        accepted: false,
         error: 'Socket not found',
       };
     }
@@ -107,6 +118,7 @@ class MassiveBiddingStressTest {
           amount,
           timestamp: startTime,
           success: false,
+          accepted: false,
           error: 'Bid timeout',
           latency: Date.now() - startTime,
         });
@@ -125,6 +137,7 @@ class MassiveBiddingStressTest {
             amount,
             timestamp: startTime,
             success: true,
+            accepted: true,
             latency: Date.now() - startTime,
           });
         }
@@ -132,6 +145,7 @@ class MassiveBiddingStressTest {
 
       // Listen for error
       const onBidError = (error: string) => {
+        const isValidation = this.validationErrors.has(error);
         clearTimeout(timeout);
         socket.off('bidUpdate', onBidUpdate);
         socket.off('bidError', onBidError);
@@ -139,7 +153,8 @@ class MassiveBiddingStressTest {
           userId,
           amount,
           timestamp: startTime,
-          success: false,
+          success: isValidation,
+          accepted: false,
           error,
           latency: Date.now() - startTime,
         });
@@ -197,8 +212,8 @@ class MassiveBiddingStressTest {
       const results = await Promise.all(promises);
       this.bidResults.push(...results);
 
-      const successful = results.filter(r => r.success).length;
-      console.log(`  Wave ${wave + 1}: ${successful}/${bidsPerWave} successful`);
+      const handled = results.filter(r => r.success).length;
+      console.log(`  Wave ${wave + 1}: ${handled}/${bidsPerWave} handled`);
 
       // Small delay between waves
       await this.sleep(500);
@@ -237,8 +252,8 @@ class MassiveBiddingStressTest {
     const results = await Promise.all(promises);
     this.bidResults.push(...results);
 
-    const successful = results.filter(r => r.success).length;
-    console.log(`🔥 Results: ${successful} winners, ${participants - successful} losers`);
+    const accepted = results.filter(r => r.accepted).length;
+    console.log(`🔥 Results: ${accepted} winners, ${participants - accepted} losers`);
     console.log('✅ Race condition test completed');
   }
 
@@ -291,8 +306,8 @@ class MassiveBiddingStressTest {
       const results = await Promise.all(promises);
       this.bidResults.push(...results);
 
-      const successful = results.filter(r => r.success).length;
-      console.log(`  Burst ${burst + 1}: ${burstSize} bids, ${successful} successful`);
+      const handled = results.filter(r => r.success).length;
+      console.log(`  Burst ${burst + 1}: ${burstSize} bids, ${handled} handled`);
 
       // Random delay between bursts
       await this.sleep(Math.random() * 2000 + 500);
@@ -306,18 +321,28 @@ class MassiveBiddingStressTest {
    */
   private calculateMetrics(): TestMetrics {
     const successfulBids = this.bidResults.filter(r => r.success);
+    const acceptedBids = this.bidResults.filter(r => r.accepted);
+    const rejectedBids = successfulBids.filter(r => !r.accepted);
     const failedBids = this.bidResults.filter(r => !r.success);
     const latencies = this.bidResults.filter(r => r.latency).map(r => r.latency!);
 
-    const errorBreakdown: Record<string, number> = {};
+    const rejectedBreakdown: Record<string, number> = {};
+    rejectedBids.forEach(bid => {
+      const error = bid.error || 'Unknown';
+      rejectedBreakdown[error] = (rejectedBreakdown[error] || 0) + 1;
+    });
+
+    const failedBreakdown: Record<string, number> = {};
     failedBids.forEach(bid => {
       const error = bid.error || 'Unknown';
-      errorBreakdown[error] = (errorBreakdown[error] || 0) + 1;
+      failedBreakdown[error] = (failedBreakdown[error] || 0) + 1;
     });
 
     return {
       totalBids: this.bidResults.length,
       successfulBids: successfulBids.length,
+      acceptedBids: acceptedBids.length,
+      rejectedBids: rejectedBids.length,
       failedBids: failedBids.length,
       averageLatency: latencies.length > 0 ? latencies.reduce((a, b) => a + b, 0) / latencies.length : 0,
       minLatency: latencies.length > 0 ? Math.min(...latencies) : 0,
@@ -325,7 +350,8 @@ class MassiveBiddingStressTest {
       concurrentUsers: this.connectedUsers,
       testDuration: (this.endTime - this.startTime) / 1000,
       bidsPerSecond: this.bidResults.length / ((this.endTime - this.startTime) / 1000),
-      errorBreakdown,
+      rejectedBreakdown,
+      failedBreakdown,
     };
   }
 
@@ -399,7 +425,9 @@ class MassiveBiddingStressTest {
     console.log(`👥 Concurrent Users: ${metrics.concurrentUsers}`);
     console.log(`\n📈 Bid Statistics:`);
     console.log(`   Total Bids: ${metrics.totalBids}`);
-    console.log(`   Successful: ${metrics.successfulBids} (${((metrics.successfulBids / metrics.totalBids) * 100).toFixed(2)}%)`);
+    console.log(`   Handled (accepted + validation rejects): ${metrics.successfulBids} (${((metrics.successfulBids / metrics.totalBids) * 100).toFixed(2)}%)`);
+    console.log(`   Accepted: ${metrics.acceptedBids} (${((metrics.acceptedBids / metrics.totalBids) * 100).toFixed(2)}%)`);
+    console.log(`   Rejected (validation): ${metrics.rejectedBids} (${((metrics.rejectedBids / metrics.totalBids) * 100).toFixed(2)}%)`);
     console.log(`   Failed: ${metrics.failedBids} (${((metrics.failedBids / metrics.totalBids) * 100).toFixed(2)}%)`);
     console.log(`   Bids/Second: ${metrics.bidsPerSecond.toFixed(2)}`);
     
@@ -408,9 +436,16 @@ class MassiveBiddingStressTest {
     console.log(`   Min: ${metrics.minLatency}ms`);
     console.log(`   Max: ${metrics.maxLatency}ms`);
 
-    if (Object.keys(metrics.errorBreakdown).length > 0) {
-      console.log(`\n❌ Error Breakdown:`);
-      Object.entries(metrics.errorBreakdown).forEach(([error, count]) => {
+    if (Object.keys(metrics.rejectedBreakdown).length > 0) {
+      console.log(`\n⚠️  Rejected Breakdown (validation):`);
+      Object.entries(metrics.rejectedBreakdown).forEach(([error, count]) => {
+        console.log(`   ${error}: ${count}`);
+      });
+    }
+
+    if (Object.keys(metrics.failedBreakdown).length > 0) {
+      console.log(`\n❌ Failed Breakdown:`);
+      Object.entries(metrics.failedBreakdown).forEach(([error, count]) => {
         console.log(`   ${error}: ${count}`);
       });
     }

@@ -18,7 +18,11 @@ export function scheduleBidBroadcast(
     console.error('[WS] Invalid parameters for broadcast', { auctionId });
     return;
   }
+  if (!snapshot.currentPrice || snapshot.currentPrice <= 0) return;
 
+  const existing = pending.get(auctionId);
+  // High-water mark: only update if the new bid is higher than what's already queued
+  if (existing && snapshot.currentPrice <= existing.currentPrice) return;
   pending.set(auctionId, snapshot);
 
   if (scheduled.has(auctionId)) {

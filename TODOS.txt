@@ -1,6 +1,6 @@
 6.ranking algorithm for auctions
-10.api versioning 
 11.mail notification
+12.better error logging with zod
 
 
 

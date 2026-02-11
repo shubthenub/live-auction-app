@@ -17,10 +17,6 @@ export async function register(
   if (exists) throw new Error('User already exists');
 
   const hash = await bcrypt.hash(password, 12);  
-
-  const session = await startSession();
-  session.startTransaction();
-
   try {
     const user = await User.create(
       [{
@@ -28,8 +24,7 @@ export async function register(
         email: email.toLowerCase(),
         passwordHash: hash,
         role
-      }],
-      { session }
+      }]
     );
 
     const wallet = await Wallet.create(
@@ -37,18 +32,15 @@ export async function register(
         userId: user[0]._id,
         balance: 100000,
         locked: 0
-      }],
-      { session }
+      }]
     );
 
     // LINK WALLET TO USER 
     await User.findByIdAndUpdate(
       user[0]._id,
       { walletId: wallet[0]._id },
-      { session, new: true }
     );
 
-    await session.commitTransaction();
 
 
     console.log(`User registered: ${user[0]._id}`);
@@ -59,11 +51,8 @@ export async function register(
       role: user[0].role,
       };
     } catch (error) {
-      await session.abortTransaction();
       throw error;
-    } finally {
-      session.endSession();
-    }
+    } 
 }
 
 

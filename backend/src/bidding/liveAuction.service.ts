@@ -4,7 +4,7 @@ import { redis } from '../config/redis.js';
 import fs from 'fs';
 import { rabbitmq } from '../config/rabbitmq.js';
 
-const ROUND_DURATION_MS = 60000;
+// const ROUND_DURATION_MS = 60000;
 let subscriber: ReturnType<typeof redis.duplicate> | null = null;
 
 async function initSubscriber() {
@@ -76,10 +76,10 @@ export async function initLiveAuction(
   });
 
   //Store timer seperately
-  await redis.set(`auction:timer:${auctionIdStr}`, 'active', 'PX', ROUND_DURATION_MS);
+  await redis.set(`auction:timer:${auctionIdStr}`, 'active', 'PX', ttl);
 
-  await redis.pexpire(`auction:${auctionIdStr}`, ROUND_DURATION_MS ); 
-  console.log("Redis auction ended at (ms):", ttl);
+  await redis.pexpire(`auction:${auctionIdStr}`, ttl ); 
+  // console.log("Redis auction ended at (ms):", ttl);
 
   await initSubscriber();
 }

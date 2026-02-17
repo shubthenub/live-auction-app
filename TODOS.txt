@@ -1,6 +1,6 @@
-6.ranking algorithm for auctions
-11.mail notification
-12.better error logging with zod
+1.ttl showing no in upstash redis render
+2.15 seconds lag in auction scheduler
+3.senders wallet not found error in render 
 
 
 

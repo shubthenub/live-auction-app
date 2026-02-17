@@ -1,11 +1,7 @@
 import amqp, { Channel } from "amqplib";
 import { env } from "./env.js";
 //QUEUE CREATION IS IDEMPOTENT - AUTOMATIC DEDUPLICATION 
-function getIndiaTime() {
-  const now = new Date();
-  const istTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
-  return istTime.getTime();
-}
+
 
 class RabbitMQ {
   private connection: any = null;
@@ -95,7 +91,7 @@ class RabbitMQ {
   async scheduleAuctionStart(auctionId: string, startTime: Date) {
     const channel = this.getChannel();
     const startMs = new Date(startTime).getTime(); // UTC epoch
-    const nowMs = getIndiaTime();                      // UTC epoch
+    const nowMs = Date.now();                      // UTC epoch
     const delay = startMs - nowMs;
 
 

@@ -16,5 +16,6 @@ export const env = {
   CLOUDINARY_API_KEY: required("CLOUDINARY_API_KEY"),
   CLOUDINARY_API_SECRET: required("CLOUDINARY_API_SECRET"),
   REDIS_URL: required("REDIS_URL"),
+  UPSTASH_REDIS_URL: required("UPSTASH_REDIS_URL"),
   RABBITMQ_URL: required("RABBITMQ_URL"),
 };

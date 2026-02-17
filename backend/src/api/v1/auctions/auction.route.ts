@@ -1,11 +1,11 @@
 import { Router } from 'express';
 import { createAuction, getMyAuctions, getAuctions, getAuctionById, getMyWonAuctions } from './auction.controller.js';
-import { authenticate } from '@auth/auth.middleware';
-import { authorize } from '@auth/auth.middleware';
-import { uploadImage } from '@common/uploadImage';
-import { endAuction, startAuction } from '@auctions/auction.scheduler';
+import { authenticate } from '@auth/auth.middleware.js';
+import { authorize } from '@auth/auth.middleware.js';
+import { uploadImage } from '@common/uploadImage.js';
+import { endAuction, startAuction } from '@auctions/auction.scheduler.js';
 import { Types } from 'mongoose';
-import {  zodValidate } from '@common/zodValidate';
+import {  zodValidate } from '@common/zodValidate.js';
 import { getAuctionsQuerySchema, createAuctionSchema, } from './auction.schema.js';
 
 const router = Router();

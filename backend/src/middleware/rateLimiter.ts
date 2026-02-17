@@ -12,10 +12,10 @@ export const generalLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Strict limiter for auth routes (5 requests per 15 minutes)
+// Strict limiter for auth routes (50 requests per 15 minutes)
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, 
-  max: 5,
+  max: 50,
   message: {
     success: false,
     message: 'Too many login/register attempts, please try again after 15 minutes.'
@@ -28,7 +28,7 @@ export const authLimiter = rateLimit({
 
 export const moderateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  max: 75,
   message: {
     success: false,
     message: 'Too many requests, please slow down.'

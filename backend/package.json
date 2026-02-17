@@ -6,8 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "tsx watch --tsconfig tsconfig.json src/server.ts",
-    "build": "tsc && tsc-alias",
-    "start": "node dist/server.js"
+    "build": "esbuild src/server.ts --bundle --platform=node --target=node20 --format=esm --outfile=dist/server.js --external:sharp --packages=external",    "start": "node dist/server.js"
   },
   "keywords": [],
   "author": "",

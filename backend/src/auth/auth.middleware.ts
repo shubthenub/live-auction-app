@@ -12,11 +12,14 @@ export function authenticate(
 ) {
   const header = req.headers.authorization;
 
-  if (!header) {
-    return res.status(401).json({ message: 'Missing Authorization header' });
+  if (!header && !req.cookies.accessToken) {
+    return res.status(401).json({ message: 'Missing Authorization header or cookie' });
   }
 
-  const token = header.split(' ')[1];
+  const tokenFromCookie = req.cookies.accessToken;
+  const tokenFromHeader = req.headers.authorization?.split(' ')[1];
+  
+  const token = tokenFromHeader || tokenFromCookie;  //for manual tetsing with postman, we can use header, for frontend we will use cookie
 
   try {
     const payload = jwt.verify(token, env.JWT_SECRET) as any;

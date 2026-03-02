@@ -1,0 +1,77 @@
+┌─────────────────────────────────────────────────────────────────┐
+│                    USER INTERACTS WITH APP                       │
+│  T = 10:30 - User clicks "View My Profile"                      │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│              FRONTEND MAKES REQUEST                              │
+│  GET /api/v1/auth/me                                            │
+│  Cookie: accessToken=expiredToken (expired at T=10:00)          │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│              BACKEND CHECKS TOKEN                                │
+│  jwt.verify(token) → TokenExpiredError ❌                       │
+│  Return: 401 Unauthorized                                        │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│         AXIOS INTERCEPTOR CATCHES 401                            │
+│  if (status === 401 && !retried) {                              │
+│    // Try to refresh token                                       │
+│  }                                                               │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│         AXIOS CALLS REFRESH ENDPOINT                             │
+│  POST /api/v1/auth/refresh                                       │
+│  Cookie: refreshToken=validToken456                              │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│         BACKEND VALIDATES REFRESH TOKEN                          │
+│  1. Find refreshToken in database ✅                            │
+│  2. Check if expired? NO ✅                                     │
+│  3. Generate NEW accessToken                                     │
+│  4. Set new cookie                                               │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│         BACKEND RESPONSE                                         │
+│  Set-Cookie: accessToken=newToken789                             │
+│  { success: true, message: "Token refreshed" }                   │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│         BROWSER UPDATES COOKIE                                   │
+│  Old: accessToken=expiredToken                                   │
+│  New: accessToken=newToken789 ✅                                │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│         AXIOS RETRIES ORIGINAL REQUEST                           │
+│  GET /api/v1/auth/me                                            │
+│  Cookie: accessToken=newToken789 (NEW!)                          │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│         BACKEND PROCESSES REQUEST                                │
+│  jwt.verify(newToken789) → SUCCESS ✅                           │
+│  Return: User profile data                                       │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│         USER SEES PROFILE                                        │
+│  Profile loads successfully!                                     │
+│  User doesn't know token was refreshed 🎉                       │
+└─────────────────────────────────────────────────────────────────┘

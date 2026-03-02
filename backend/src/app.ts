@@ -6,11 +6,15 @@ import auctionRoutes from './api/v1/auctions/auction.route.js';
 import cookieParser from 'cookie-parser';
 import testUploadRoutes from './common/testUpload.route.js';
 import v1Routes from '@api/v1/index.js';
+import cors from 'cors';
+import { corsConfig } from './config/cors.config.js';
 
 
 dotenv.config();
 
 export const app = express();
+
+app.use(cors(corsConfig));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

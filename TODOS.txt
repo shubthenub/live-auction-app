@@ -1,6 +1,9 @@
-1.ttl showing no in upstash redis render
-2.15 seconds lag in auction scheduler
-3.senders wallet not found error in render 
+
+2. add blacklist token in auth and draw diagram of full auth flue simulating ui
+3. alternative to dlx queue ?
+4. idempotency in starting auction and ending auction 
+4. stress test 5k users 
+5. test ws in production 
 
 
 

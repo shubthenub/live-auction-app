@@ -12,6 +12,7 @@ import {
   RegisterRequestDTO,
 } from './auth.dto';
 import { registerSchema } from './auth.schema';
+import { cookieConfig } from '@/config/cookie';
 
 export async function register(req: Request, res: Response) {
   try {
@@ -73,12 +74,9 @@ export async function login(req: Request, res: Response) {
 
     const { accessToken, refreshToken } = await authService.login(email, password);
     
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',       
-      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    // set both tokens in httpOnly cookies
+    res.cookie('accessToken', accessToken, cookieConfig.accessToken);
+    res.cookie('refreshToken', refreshToken, cookieConfig.refreshToken);
 
     const response: LoginResponseDTO = {
       success: true,
@@ -106,94 +104,49 @@ export async function login(req: Request, res: Response) {
 }
 
 export async function logout(req: Request, res: Response) {
-  try {
-    const token = req.cookies?.refreshToken;
-    if (token) {
-      await RefreshToken.deleteOne({ token });
-    }
+    try {
+      const refreshToken = req.cookies.refreshToken;
+      const result = await authService.logout(refreshToken);
+      
+      // Override maxAge to expire immediately
+      res.cookie('accessToken', '', {
+        ...cookieConfig.accessToken,
+        maxAge: 0, // Expire immediately
+        expires: new Date(0) // Set to past date
+      });
+      
+      res.cookie('refreshToken', '', {
+        ...cookieConfig.refreshToken,
+        maxAge: 0,
+        expires: new Date(0)
+      });
 
-    res.clearCookie('refreshToken', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
-    });
-    
-    res.json({ 
-      success: true,
-      message: 'Logged out successfully' 
-    });
-  } catch (error: any) {
-    console.error('Logout error:', error);
-    res.status(500).json({ 
-      success: false,
-      message: 'Logout failed. Please try again.' 
-    });
+      
+      res.json(result);
+    } catch (error:any) {
+      res.status(500).json({ error: error.message });
+    }
   }
-}
 
 export async function refresh(req: Request, res: Response) {
   try {
-    const token = req.cookies?.refreshToken;
-    
-    if (!token) {
-      return res.status(401).json({ 
-        success: false,
-        message: 'No refresh token provided' 
-      });
+      const refreshToken = req.cookies.refreshToken;
+
+      if (!refreshToken) {
+        return res.status(401).json({ error: 'Refresh token required' });
+      }
+
+      const result = await authService.refreshAccessToken(refreshToken);
+      
+      res.cookie('accessToken', result.accessToken, cookieConfig.accessToken);
+      
+      res.json({ message: 'Token refreshed successfully' });
+    } catch (error: any) {
+      res.clearCookie('accessToken');
+      res.clearCookie('refreshToken');
+      res.status(401).json({ error: error.message });
     }
-
-    const stored = await RefreshToken.findOne({ token });
-    
-    if (!stored) {
-      return res.status(401).json({ 
-        success: false,
-        message: 'Invalid refresh token' 
-      });
-    }
-
-    if (stored.expiresAt < new Date()) {
-      await RefreshToken.deleteOne({ token });
-      return res.status(401).json({ 
-        success: false,
-        message: 'Refresh token expired' 
-      });
-    }
-
-    const user = await User.findById(stored.userId);
-    
-    if (!user) {
-      return res.status(401).json({ 
-        success: false,
-        message: 'User not found' 
-      });
-    }
-
-    const newAccessToken = jwt.sign(
-      { sub: String(user._id), role: user.role },
-      env.JWT_SECRET,
-      { expiresIn: '15m' }
-    );
-
-    res.json({ 
-      success: true,
-      accessToken: newAccessToken 
-    });
-  } catch (error: any) {
-    console.error('Refresh token error:', error);
-    
-    if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({ 
-        success: false,
-        message: 'Invalid token format' 
-      });
-    }
-
-    res.status(500).json({ 
-      success: false,
-      message: 'Token refresh failed. Please login again.' 
-    });
   }
-}
 
 export async function getMe(req: Request, res: Response) {
   try {

@@ -4,6 +4,7 @@ import { authLimiter } from '@middleware/rateLimiter.js';
 import { zodValidate } from '@common/zodValidate.js';
 import { loginSchema, registerSchema } from './auth.schema.js';
 import { authenticate } from '@/auth/auth.middleware.js';
+import { cookieConfig } from '@/config/cookie.js';
 
 const router = Router();
 

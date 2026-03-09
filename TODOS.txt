@@ -1,9 +1,10 @@
 
-2. add blacklist token in auth and draw diagram of full auth flue simulating ui
-3. alternative to dlx queue ?
-4. idempotency in starting auction and ending auction 
-4. stress test 5k users 
-5. test ws in production 
+done. add blacklist token in auth and draw diagram of full auth flue simulating ui --> no need , settled with natural dying of acccessToken and manual refreshToken deletion via loguot 
+done. alternative to dlx queue ? --> yes but for time being current setup is fine, just add retry for auction start queue as well 
+done. idempotency in starting auction and ending auction  -> for single server mongodbs check and write is fine and atomic , fo rmultiple instances - must do distributed lock 
+
+1. stress test 5k users 
+2. test ws in production 
 
 
 

@@ -40,8 +40,6 @@ export async function endAuction(
   finalPrice: number,
   winnerId: Types.ObjectId | null,
 ) {
-  const session = await startSession();
-  session.startTransaction();
   try {
     const auction = await Auction.findById(auctionId);
 
@@ -55,7 +53,7 @@ export async function endAuction(
 
     // Transfer balance from winner to auctioneer
     if (winnerId && finalPrice > 0) {
-      await transferBalance(winnerId, auction.createdBy, finalPrice, session);
+      await transferBalance(winnerId, auction.createdBy, finalPrice);
     }
 
     // Update auction status with session
@@ -63,9 +61,7 @@ export async function endAuction(
     auction.finalPrice = finalPrice;
     auction.winnerUserId = winnerId;
     auction.endTime = new Date();
-    await auction.save({ session }); 
-
-    await session.commitTransaction();
+    await auction.save(); 
 
     // Release locked balance in Redis (after transaction commits)
     if (winnerId) {
@@ -92,9 +88,6 @@ export async function endAuction(
 
     console.log("Auction ended:", auction.id);
   } catch (error) {
-    await session.abortTransaction();
     console.error("Error ending auction:", error);
-  } finally {
-    session.endSession();
   }
 }

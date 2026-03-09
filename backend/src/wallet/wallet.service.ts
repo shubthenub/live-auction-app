@@ -6,8 +6,7 @@ import { redis } from '../config/redis.js';
 export async function transferBalance(
   fromUserId: Types.ObjectId,
   toUserId: Types.ObjectId,
-  amount: number,
-  session: ClientSession
+  amount: number
 ): Promise<void> {
   if (amount <= 0) {
     throw new Error('Amount must be greater than 0');
@@ -16,7 +15,6 @@ export async function transferBalance(
   // Get sender's wallet
   const sender = await User.findById(fromUserId)
     .select('walletId')
-    .session(session)
     .lean();
 
   if (!sender?.walletId) {
@@ -26,7 +24,6 @@ export async function transferBalance(
   // Get recipient's wallet
   const recipient = await User.findById(toUserId)
     .select('walletId')
-    .session(session)
     .lean();
 
   if (!recipient?.walletId) {
@@ -34,10 +31,8 @@ export async function transferBalance(
   }
 
   // Fetch wallet documents to validate
-  const senderWallet = await Wallet.findById(sender.walletId).session(session);
-  const recipientWallet = await Wallet.findById(recipient.walletId).session(
-    session
-  );
+  const senderWallet = await Wallet.findById(sender.walletId);
+  const recipientWallet = await Wallet.findById(recipient.walletId);
 
   if (!senderWallet || !recipientWallet) {
     throw new Error('Wallet documents not found');
@@ -51,13 +46,13 @@ export async function transferBalance(
   await Wallet.findByIdAndUpdate(
     sender.walletId,
     { $inc: { balance: -amount } },
-    { session, new: true }
+    { new: true }
   );
 
   await Wallet.findByIdAndUpdate(
     recipient.walletId,
     { $inc: { balance: amount } },
-    { session, new: true }
+    { new: true }
   );
 
   console.log(`✅ Transferred ₹${amount} from ${fromUserId} to ${toUserId}`);

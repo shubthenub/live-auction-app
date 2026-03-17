@@ -1,7 +1,7 @@
 config:
-  target: "http://localhost:3000" # Your API/Socket URL
+  target: "http://localhost:3000" 
+  processor: "./dynamicBid.cjs" 
   
-  # Load the 5000 generated users
   payload:
     path: "mock-users.csv"
     fields:
@@ -9,44 +9,37 @@ config:
       - "token"
     order: sequence 
   
-  # Configure Socket.io
   engines:
-    socketio-v3:
-      auth:
-        token: "{{ token }}"
+    socketio-v3: {}
 
   phases:
-    # Phase 1: Join in batches of 250 per second. 
-    # Takes 20 seconds to connect all 5,000 users. 
-    # Respects Atlas IO limits while joining.
-    - duration: 20
-      arrivalRate: 250
-      name: "Connect all 5,000 users in batches"
-    
-    # Phase 2: Stay connected for 60 seconds and bid
-    - pause: 60
-      name: "Hold connections and bid"
+  - duration: 200    # ~3.5 minutes
+    arrivalRate: 50  # 50 users/sec × 200s = 10,000
+    name: "Ramp up"
+  - pause: 60
+    name: "Hold under load"
+
 
 scenarios:
   - name: "Random Interval Bidding"
     engine: socketio-v3
     flow:
+      - connect:
+          transports: ["websocket"]
+          auth:
+            token: "{{ token }}"
       - emit:
-          channel: "joinAuction"
-          data:
-            auctionId: "69af3f33039c9eefef7d325d"
+        - "joinAuction"
+        - auctionId: "69b9c0cd8afa40228266554c" 
       
-      # 3. Add random jitter so they don't all bid on the exact same millisecond
       - think: 1
       
-      # 4. Loop: Random interval bidding
       - loop:
+          - function: "generateBid" 
           - emit:
-              channel: "placeBid"
-              data:
-                auctionId: "69af3f33039c9eefef7d325d"
-                amount: 1500 # Adjust if you want random amounts 
+            - "placeBid"
+            - auctionId: "69b9c0cd8afa40228266554c"
+              amount: "{{ dynamicBid }}" # Use the dynamic bid amount here
           
-          # Wait approx 5 seconds before the next bid
           - think: 5
-        count: 12 # 60 seconds / 5 seconds = 12 bids per user
+        count: 12 

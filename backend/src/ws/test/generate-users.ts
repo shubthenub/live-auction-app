@@ -13,7 +13,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const MOCK_FILE_PATH = path.join(__dirname, 'mock-users.csv');
 
-const TOTAL_USERS = 5000;
+const TOTAL_USERS = 10000;
 const BATCH_SIZE = 250;
 const WALLET_BALANCE = 1000000;
 

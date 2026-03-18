@@ -158,7 +158,7 @@ export function setupSocket(server: http.Server) {
       throttleLog('joined', 500, () => `User ${user.id} joined auction ${auctionIdStr}`);
     });
 
-    socket.on('placeBid', async ({ auctionId, amount }) => {
+    socket.on('placeBid', async ({ auctionId, amount }, ack) => {
       try {
         const state = await placeBid(
           auctionId,
@@ -166,7 +166,12 @@ export function setupSocket(server: http.Server) {
           socket.data.user.id,
           100 
         );
-
+        // send BOTH — ack for latency measurement, emit for broadcast listeners
+        if (typeof ack === 'function') {
+          ack({ success: true, price: state.currentPrice });  // ← add this back
+        }
+        socket.emit('bidResult', { success: true, price: state.currentPrice });
+        
         scheduleBidBroadcast(io, auctionId, {  //to throttle bid updates broadcast 
           currentPrice: Number(state.currentPrice),
           highestBidderId: String(state.highestBidderId),
@@ -175,7 +180,11 @@ export function setupSocket(server: http.Server) {
         });
 
       } catch (err: any) {
+        if (typeof ack === 'function') {
+          ack({ success: false, error: err.message });   
+        }
         socket.emit('bidError', err.message);
+        socket.emit('bidResult', { success: false, error: err.message });
       }
     });
 
@@ -199,7 +208,8 @@ export function setupSocket(server: http.Server) {
     socket.on("disconnect", async () => {
       const auctionIdStr = socket.data.auctionId; //use this instead of header based auction ID
       
-      console.log("Socket disconnected:", socket.id, "User:", user.id);
+      throttleLog('disconnected', 500, () => `Socket disconnected: ${socket.id} User: ${user.id}`);
+
       
       // If user disconnects while NOT winning, unlock wallet immediately
       // This prevents funds from being locked indefinitely if client crashes

@@ -86,6 +86,15 @@ export async function endAuction(
       winnerId,
     });
 
+    // Kick all sockets out of the auction room
+    const roomSockets = await io.in(`auction:${auctionId.toString()}`).fetchSockets();
+    for (const s of roomSockets) {
+      s.leave(`auction:${auctionId.toString()}`);
+      s.data.auctionId = null; // clear so disconnect handler doesn't try wallet cleanup
+    }
+    // Clean up Redis auction data (timer key already expired, just delete data key)
+    await redis.del(`auction:data:${auctionId.toString()}`);
+
     console.log("Auction ended:", auction.id);
   } catch (error) {
     console.error("Error ending auction:", error);

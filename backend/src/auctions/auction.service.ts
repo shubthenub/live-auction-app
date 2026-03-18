@@ -51,8 +51,8 @@ export async function createAuction(input: CreateAuctionInput) {
   const durationMs = endTime.getTime() - startTime.getTime();
   const durationMinutes = durationMs / (1000 * 60);
 
-  if (durationMinutes < 5 || durationMinutes > 10) {
-    throw new Error('Auction duration must be between 5 and 10 minutes');
+  if (durationMinutes < 5 || durationMinutes > 20) {
+    throw new Error('Auction duration must be between 5 and 20 minutes');
   }
 
   const createdByObjectId = new Types.ObjectId(createdBy);

@@ -13,8 +13,8 @@ config:
     socketio-v3: {}
 
   phases:
-  - duration: 200    # ~3.5 minutes
-    arrivalRate: 50  # 50 users/sec × 200s = 10,000
+  - duration:   133  # 200/1.5
+    arrivalRate: 75  # 75 users/sec × 133s = 10,000
     name: "Ramp up"
   - pause: 60
     name: "Hold under load"
@@ -30,7 +30,7 @@ scenarios:
             token: "{{ token }}"
       - emit:
         - "joinAuction"
-        - auctionId: "69b9c0cd8afa40228266554c" 
+        - auctionId: "69bb29f9763cc9b83c810541" 
       
       - think: 1
       
@@ -38,8 +38,8 @@ scenarios:
           - function: "generateBid" 
           - emit:
             - "placeBid"
-            - auctionId: "69b9c0cd8afa40228266554c"
+            - auctionId: "69bb29f9763cc9b83c810541"
               amount: "{{ dynamicBid }}" # Use the dynamic bid amount here
           
-          - think: 5
-        count: 12 
+          - think: 1
+        count: 60

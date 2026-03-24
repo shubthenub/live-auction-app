@@ -47,5 +47,8 @@
     "artillery-engine-socketio-v3": "^1.2.0",
     "tsc-alias": "^1.8.16",
     "tsx": "^4.21.0"
+  },
+  "optionalDependencies": {
+    "@esbuild/linux-x64": "^0.27.3"
   }
 }

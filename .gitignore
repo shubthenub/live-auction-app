@@ -42,3 +42,4 @@ coverage/
 
 backend/src/ws/test/*.txt
 backend/src/ws/test/*.csv
+backend/src/ws/test/ws-client.ts

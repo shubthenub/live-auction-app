@@ -30,7 +30,7 @@ scenarios:
             token: "{{ token }}"
       - emit:
         - "joinAuction"
-        - auctionId: "69bb29f9763cc9b83c810541" 
+        - auctionId: "69bbd8039be31f16f6a4bd37" 
       
       - think: 1
       
@@ -38,7 +38,7 @@ scenarios:
           - function: "generateBid" 
           - emit:
             - "placeBid"
-            - auctionId: "69bb29f9763cc9b83c810541"
+            - auctionId: "69bbd8039be31f16f6a4bd37"
               amount: "{{ dynamicBid }}" # Use the dynamic bid amount here
           
           - think: 1

@@ -1,17 +1,14 @@
 config:
   target: "http://localhost:3000"
   processor: "./dynamicBid.cjs"
-
   payload:
     path: "mock-users.csv"
     fields:
       - "id"
       - "token"
     order: sequence
-
   engines:
     socketio-v3: {}
-
   phases:
     - duration: 100
       arrivalRate: 20
@@ -20,20 +17,29 @@ config:
 scenarios:
   - name: "Bid Latency Measurement"
     engine: socketio-v3
-    beforeScenario: "beforeScenario"      # runs before socket connects
     flow:
+      - connect:
+          transports: ["websocket"]
+          auth:
+            token: "{{ token }}"
+
       - emit:
           channel: "joinAuction"
           data:
-            auctionId: "69bb343006f6a6043c9f9b04"
+            auctionId: "69bbd92a9be31f16f6a4bf09"
 
       - set:
-          auctionId: "69bb343006f6a6043c9f9b04"
+          auctionId: "69bbd92a9be31f16f6a4bf09"
 
       - think: 1
 
       - loop:
           - function: "generateBid"
-          - function: "placeBidWithLatency"
+          - emit:
+              channel: "placeBid"
+              data:
+                auctionId: "{{ auctionId }}"
+                amount: "{{ dynamicBid }}"
+              acknowledge: true
           - think: 3
         count: 33

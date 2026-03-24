@@ -40,3 +40,5 @@ logs/
 coverage/
 .nyc_output
 
+backend/src/ws/test/*.txt
+backend/src/ws/test/*.csv

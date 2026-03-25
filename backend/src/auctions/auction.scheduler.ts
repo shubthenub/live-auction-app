@@ -54,6 +54,8 @@ export async function endAuction(
     // Transfer balance from winner to auctioneer
     if (winnerId && finalPrice > 0) {
       await transferBalance(winnerId, auction.createdBy, finalPrice);
+    } else {
+      console.log(`[AUCTION] Auction ${auctionId} ended with NO winner — no bids were placed or final price was ${auction.basePrice}.`);
     }
 
     // Update auction status with session
@@ -94,9 +96,11 @@ export async function endAuction(
     }
     // Clean up Redis auction data (timer key already expired, just delete data key)
     await redis.del(`auction:data:${auctionId.toString()}`);
+    await redis.del(`auction:timer:${auctionId.toString()}`); 
 
     console.log("Auction ended:", auction.id);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error ending auction:", error);
+    throw error;
   }
 }

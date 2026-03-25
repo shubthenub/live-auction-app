@@ -32,7 +32,7 @@ router.post(
     authenticate,
     authorize(['AUCTIONEER']),
     async (req, res) => {
-      const auctionId = new Types.ObjectId(req.params.id);
+      const auctionId = new Types.ObjectId(String(req.params.id));
       await startAuction(auctionId);
       res.json({ message: 'Auction started' });
     }
@@ -43,19 +43,28 @@ router.post(
   authenticate,
   authorize(['AUCTIONEER']),
   async (req, res) => {
-    const { finalPrice, winnerId } = req.body;
+    try {
+      const { finalPrice, winnerId } = req.body;
 
-    if (!Types.ObjectId.isValid(req.params.id)) {
-      return res.status(400).json({ message: 'Invalid auction id' });
+      const auctionId = String(req.params.id);
+
+      if (!Types.ObjectId.isValid(auctionId)) {
+        return res.status(400).json({ message: 'Invalid auction id' });
+      }
+
+      await endAuction(
+        new Types.ObjectId(auctionId),
+        Number(finalPrice),
+        winnerId ? new Types.ObjectId(String(winnerId)) : null
+      );
+
+      res.json({ message: 'Auction ended' });
+    } catch (error: any) {
+      if (error.message === 'Auction not found' || error.message === 'Auction is not live') {
+        return res.status(404).json({ message: error.message });
+      }
+      res.status(500).json({ message: 'Failed to end auction manually', error: error.message });
     }
-
-    await endAuction(
-      new Types.ObjectId(req.params.id),
-      Number(finalPrice),
-      winnerId ? new Types.ObjectId(winnerId) : null
-    );
-
-    res.json({ message: 'Auction ended' });
   }
 );
 

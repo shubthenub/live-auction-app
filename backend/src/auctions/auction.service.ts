@@ -85,7 +85,8 @@ export async function createAuction(input: CreateAuctionInput) {
     console.log("Checking date and time after publishing schedule auction message: ", startTime)
     console.log(`✅ Auction ${auction._id} scheduled to start at ${startTime.toISOString()}`);
   } catch (error) {
-    console.error('Failed to schedule auction:', error);
+    await Auction.findByIdAndDelete(auction._id); // rollback!
+    throw new Error('Auction created but failed to schedule. Please retry.');
   }
   return auction;
 }

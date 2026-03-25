@@ -43,12 +43,12 @@ class RabbitMQ {
     // 3. Bind work queue to DLX
     await this.channel.bindQueue('auction-start', 'auction-dlx', 'start');
 
-    // 4. Create delay queue (routes to DLX after TTL)
-    await this.channel.assertQueue('auction-start-delay', {
-      durable: true,
-      deadLetterExchange: 'auction-dlx',
-      deadLetterRoutingKey: 'start',
-    });
+    // 4. Create delay queue (routes to DLX after TTL) ----- this was replaced by one queue per auction strategy
+    // await this.channel.assertQueue('auction-start-delay', {
+    //   durable: true,
+    //   deadLetterExchange: 'auction-dlx',
+    //   deadLetterRoutingKey: 'start',
+    // });
     
     await this.channel.prefetch(100);
     console.log("[RABBITMQ] Auction Scheduler connected with DLQ");
@@ -87,33 +87,25 @@ class RabbitMQ {
   }
 
   
-  // Schedule auction start using TTL
+  // Schedule auction start using TTL --> v2-> one queue per auction 
   async scheduleAuctionStart(auctionId: string, startTime: Date) {
     const channel = this.getChannel();
-    const startMs = new Date(startTime).getTime(); // UTC epoch
-    const nowMs = Date.now();                      // UTC epoch
-    const delay = startMs - nowMs;
-
-
-    if (delay <= 0) {
-      throw new Error('Start time must be in the future');
-    }
-
-    if(delay > 198396) { //Time drift occured , fix it 
-      throw new Error('Delay seems drifted too much: ' + delay.toString());
-    }
-
-    // Send to delay queue with TTL (expiration)
+    const delay = new Date(startTime).getTime() - Date.now();
+    if (delay <= 0) throw new Error('Start time must be in the future');
+    const delayQueueName = `auction-start-delay:${auctionId}`;
+    await channel.assertQueue(delayQueueName, {
+      durable: true,
+      deadLetterExchange: 'auction-dlx',
+      deadLetterRoutingKey: 'start',
+      messageTtl: delay,        // queue-level TTL → no head-of-queue bias
+      expires: delay + 60_000,  // auto-delete the temp queue 60s after it fires
+    });
     channel.sendToQueue(
-      'auction-start-delay',
+      delayQueueName,
       Buffer.from(JSON.stringify({ auctionId })),
-      {
-        persistent: true,
-        expiration: delay.toString(), // TTL in milliseconds
-      }
+      { persistent: true }      // NO per-message expiration — let queue TTL drive it
     );
-
-    console.log(`📅 Scheduled auction ${auctionId} to start in ${Math.round(delay / 1000)}s`);
+    console.log(`📅 Scheduled auction ${auctionId} in ${Math.round(delay / 1000)}s via dedicated queue`);
   }
 
   async close(): Promise<void> {

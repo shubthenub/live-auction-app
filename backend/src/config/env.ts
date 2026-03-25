@@ -24,4 +24,5 @@ export const env = {
   REDIS_URL: optional("REDIS_URL", "redis://127.0.0.1:6379"),  // Dev only
   UPSTASH_REDIS_URL: required("UPSTASH_REDIS_URL"),
   RABBITMQ_URL: required("RABBITMQ_URL"),
+  HEALTH_SECRET: required("HEALTH_SECRET"),
 };

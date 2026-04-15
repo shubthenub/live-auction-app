@@ -1,0 +1,339 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Live Auction API",
+    "version": "1.0.0",
+    "description": "API Endpoints for the Live Auction Application"
+  },
+  "servers": [
+    {
+      "url": "/api/v1"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health Check & Redis Keep-Alive",
+        "description": "Pings Upstash Redis and checks the MongoDB connection state. Keeps Upstash alive and signals Render whether the service is healthy. Requires a secret token for access.",
+        "operationId": "getHealth",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "query",
+            "description": "Health check secret token, typically configured in environment variables (HEALTH_SECRET).",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Health-Token",
+            "in": "header",
+            "description": "Health check secret token, typically configured in environment variables (HEALTH_SECRET).",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK - All services are up and running.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "ok"
+                      ]
+                    },
+                    "checks": {
+                      "type": "object",
+                      "properties": {
+                        "redis": {
+                          "type": "string",
+                          "enum": [
+                            "ok"
+                          ]
+                        },
+                        "mongo": {
+                          "type": "string",
+                          "enum": [
+                            "ok"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "redis",
+                        "mongo"
+                      ]
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "checks",
+                    "timestamp"
+                  ]
+                },
+                "examples": {
+                  "allServicesUp": {
+                    "value": {
+                      "status": "ok",
+                      "checks": {
+                        "redis": "ok",
+                        "mongo": "ok"
+                      },
+                      "timestamp": "2026-03-25T12:24:10.000Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found - Invalid health check token provided.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "enum": [
+                        "Not found"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable - One or more services are degraded or down.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "degraded"
+                      ]
+                    },
+                    "checks": {
+                      "type": "object",
+                      "properties": {
+                        "redis": {
+                          "type": "string",
+                          "enum": [
+                            "ok",
+                            "error",
+                            "degraded"
+                          ]
+                        },
+                        "mongo": {
+                          "type": "string",
+                          "enum": [
+                            "ok",
+                            "error"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "redis",
+                        "mongo"
+                      ]
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "checks",
+                    "timestamp"
+                  ]
+                },
+                "examples": {
+                  "redisDown": {
+                    "value": {
+                      "status": "degraded",
+                      "checks": {
+                        "redis": "error",
+                        "mongo": "ok"
+                      },
+                      "timestamp": "2026-03-25T12:24:10.000Z"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auctions/{id}/end": {
+      "post": {
+        "summary": "End Auction (Manual Override/Hook)",
+        "description": "Manually ends an auction. Only accessible by AUCTIONEERs.",
+        "operationId": "endAuction",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The ID of the auction to end.",
+            "schema": {
+              "type": "string",
+              "format": "ObjectId"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "finalPrice": {
+                    "type": "number",
+                    "format": "float",
+                    "description": "The final price of the auction."
+                  },
+                  "winnerId": {
+                    "type": "string",
+                    "format": "ObjectId",
+                    "description": "The ID of the winning user (optional)."
+                  }
+                },
+                "required": [
+                  "finalPrice"
+                ]
+              },
+              "examples": {
+                "endAuctionExample": {
+                  "value": {
+                    "finalPrice": 1200.5,
+                    "winnerId": "60d5ecb8b392d70..."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Auction ended successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "enum": [
+                        "Auction ended"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Invalid auction ID provided.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "enum": [
+                        "Invalid auction id"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required."
+          },
+          "403": {
+            "description": "Forbidden - User does not have AUCTIONEER role."
+          },
+          "404": {
+            "description": "Not Found - Auction not found or is not currently live.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "enum": [
+                        "Auction not found",
+                        "Auction is not live"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error - Failed to end auction manually due to an unexpected error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "enum": [
+                        "Failed to end auction manually"
+                      ]
+                    },
+                    "error": {
+                      "type": "string",
+                      "description": "Details about the error."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "accessToken"
+      }
+    }
+  }
+}

@@ -1,3 +1,8 @@
+## 2026-04-17 — `41a434d`
+_docs: update API documentation & changelog [skip ci]
+
+Generated from commit 418d082_
+
 ## 2026-04-17 — `418d082`
 _docs: update API documentation & changelog [skip ci]
 

@@ -3,8 +3,7 @@
   "info": {
     "title": "Live Auction API",
     "version": "1.0.0",
-    "description": "API Endpoints for the Live Auction Application",
-    "x-generated-by": "diffuse"
+    "description": "API Endpoints for the Live Auction Application"
   },
   "servers": [
     {
@@ -23,6 +22,99 @@
         "scheme": "bearer",
         "bearerFormat": "JWT"
       }
+    },
+    "schemas": {
+      "RegisterRequest": {
+        "type": "object",
+        "required": [
+          "username",
+          "email",
+          "password",
+          "role"
+        ],
+        "properties": {
+          "username": {
+            "type": "string",
+            "example": "johndoe"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "john@example.com"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 6,
+            "example": "secret123"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "USER",
+              "ADMIN"
+            ],
+            "example": "USER"
+          }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "john@example.com"
+          },
+          "password": {
+            "type": "string",
+            "example": "secret123"
+          }
+        }
+      },
+      "AuctionRequest": {
+        "type": "object",
+        "required": [
+          "title",
+          "description",
+          "basePrice",
+          "startTime",
+          "endTime"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "Vintage Watch"
+          },
+          "description": {
+            "type": "string",
+            "example": "A classic timepiece from 1950."
+          },
+          "basePrice": {
+            "type": "number",
+            "minimum": 0,
+            "example": 100
+          },
+          "minIncrement": {
+            "type": "number",
+            "minimum": 0,
+            "example": 10
+          },
+          "startTime": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-12-31T23:59:59Z"
+          },
+          "endTime": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-01-01T23:59:59Z"
+          }
+        }
+      }
     }
   },
   "paths": {
@@ -32,6 +124,16 @@
         "tags": [
           "Auth"
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": "User created"
@@ -48,6 +150,16 @@
         "tags": [
           "Auth"
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Login successful"
@@ -73,6 +185,11 @@
         "summary": "Refresh access token",
         "tags": [
           "Auth"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
         ],
         "responses": {
           "200": {
@@ -105,9 +222,32 @@
         "tags": [
           "Auctions"
         ],
-        "security": [
+        "parameters": [
           {
-            "jwtAuth": []
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "SCHEDULED",
+                "LIVE",
+                "ENDED"
+              ]
+            }
           }
         ],
         "responses": {
@@ -126,6 +266,16 @@
             "jwtAuth": []
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuctionRequest"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": "Auction created"
@@ -174,11 +324,6 @@
         "summary": "Get auction details",
         "tags": [
           "Auctions"
-        ],
-        "security": [
-          {
-            "jwtAuth": []
-          }
         ],
         "parameters": [
           {

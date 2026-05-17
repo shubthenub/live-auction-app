@@ -80,7 +80,13 @@
           "title": {
             "type": "string"
           },
+          "description": {
+            "type": "string"
+          },
           "basePrice": {
+            "type": "number"
+          },
+          "minIncrement": {
             "type": "number"
           },
           "currentPrice": {
@@ -122,7 +128,7 @@
         },
         "responses": {
           "201": {
-            "description": "User created successfully"
+            "description": "User created"
           },
           "400": {
             "description": "Validation error"
@@ -193,37 +199,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Paginated list of auctions",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": true
-                    },
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/Auction"
-                      }
-                    },
-                    "pagination": {
-                      "type": "object",
-                      "properties": {
-                        "page": {
-                          "type": "integer"
-                        },
-                        "totalPages": {
-                          "type": "integer"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
+            "description": "Paginated auctions"
           }
         }
       },
@@ -240,18 +216,22 @@
             "multipart/form-data": {
               "schema": {
                 "type": "object",
+                "required": [
+                  "title",
+                  "description",
+                  "basePrice",
+                  "startTime",
+                  "endTime"
+                ],
                 "properties": {
                   "title": {
-                    "type": "string",
-                    "example": "Vintage Watch"
+                    "type": "string"
                   },
                   "description": {
-                    "type": "string",
-                    "example": "A classic timepiece."
+                    "type": "string"
                   },
                   "basePrice": {
-                    "type": "number",
-                    "example": 100
+                    "type": "number"
                   },
                   "startTime": {
                     "type": "string",
@@ -275,10 +255,10 @@
         },
         "responses": {
           "201": {
-            "description": "Auction created"
+            "description": "Created"
           },
           "400": {
-            "description": "Invalid input data"
+            "description": "Validation error"
           }
         }
       }
@@ -288,7 +268,7 @@
         "summary": "Check API health",
         "responses": {
           "200": {
-            "description": "System is operational"
+            "description": "OK"
           }
         }
       }
